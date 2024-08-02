@@ -82,8 +82,11 @@ def parse_args():
 
 
 def set_gpu(gpu):
-    os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"  # see issue #152
-    os.environ["CUDA_VISIBLE_DEVICES"] = gpu
+    if torch.cuda.is_available():
+        os.environ["CUDA_VISIBLE_DEVICES"] = gpu
+        print("Using GPU: {}".format(gpu))
+    else:
+        print("Using CPU")
 
 
 def set_seed(seed):
