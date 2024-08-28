@@ -6,8 +6,7 @@ This file modified from:
 import torch
 import random
 import numpy as np
-from estimators.utils import KNNComputerNoCheck, update_nn
-from sklearn.neighbors import NearestNeighbors
+from .utils import KNNComputerNoCheck, update_nn
 
 
 def intrinsic_dim_sample_wise_double_mle(k=5, dist=None):
@@ -110,7 +109,7 @@ def mle(full_dataset, nb_iter=100, random_state=None, k1=10, k2=20, average=Fals
         nb_examples = len(full_dataset)
     results = []
 
-    print("Computing the KNNs")
+    # print("Computing the KNNs")
     # compute the KNN with pytorch
     nn_computer = KNNComputerNoCheck(len(anchor_dataset), K=k2 + 1).cuda()
 
@@ -166,7 +165,7 @@ def mle_inverse_singlek(full_dataset, k1=10, args=None, anchor_dataset=None):
         else:
             anchor_dataset = full_dataset
 
-    print("Computing the KNNs")
+    # print("Computing the KNNs")
     # compute the KNN with pytorch
     nn_computer = KNNComputerNoCheck(len(anchor_dataset), K=k1 + 1).cuda()
 

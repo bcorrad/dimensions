@@ -1,29 +1,67 @@
 import os
-import random
 import numpy as np
 from PIL import Image
-
 import torch
 import torchvision
+from torch.utils.data import DataLoader
 from torchvision import transforms
 from torch.nn.functional import interpolate
+from .data import FileDataset, TensorDataset, read_hdf5
+from . import unique_cifar_dataset as ucifar
+from .icob_dataset_generator import generate_dataloader
 
-from data.data import FileDataset, TensorDataset, read_hdf5
-import data.unique_cifar_dataset as ucifar
+# Resize all images to 32x32
+RESIZE_SIZE = 32
+resize_all = transforms.Lambda(lambda x: interpolate(x.unsqueeze(0), size=RESIZE_SIZE).squeeze())
 
 
-RESIZE_SIZE = (32,32)
-resize_all = transforms.Lambda(lambda x: interpolate(x.unsqueeze(0),
-  size=RESIZE_SIZE).squeeze())
-
-
-def load_data(args, train=True, imagenet_uid_fp="imagenet_uid.npy", data_root='./data',
+def load_data(args, 
+              train=True,
+              dataset_split='train', 
+              imagenet_uid_fp="imagenet_uid.npy", 
+              data_root='./data',
               fonts_data_dir='/cmlscratch/pepope/public/gen_gan/fonts_data/fonts'):
-    #Synthetic data must be loaded from `samples/`
-    if "samples" in args.dset.lower():
-       dset = FileDataset(args.dset, getattr(args, 'max_num_samples', -1))
-    elif "cifar" in args.dset.lower():
-        if args.dset.lower() == "cifar100":
+    
+    dataset_dict = {}
+    dloader = None
+
+    if "icob" in args.dataset.lower():
+        # Generate synthetic data if ICoB dataset samples do not exist
+        if not os.path.exists(data_root):
+            print("Generating synthetic data for ICoB dataset")
+            dataset_dict = generate_dataloader(dataDir=data_root, 
+                                               imgResol=args.img_size, 
+                                               batchSize=args.gan_batch_size, 
+                                               nImages=args.n_images)
+        else:
+            for split in os.listdir(data_root):
+                dataset_dict[split] = os.path.join(data_root, split)
+            
+        # Read the images from the folder
+        try:
+            dset = torchvision.datasets.ImageFolder(
+                root=dataset_dict[dataset_split],
+                transform=transforms.Compose([
+                    transforms.ToTensor(),
+                    resize_all
+                ]))
+        except:
+            # Take parent folder of dataset_dict[dataset_split]
+            dset = torchvision.datasets.ImageFolder(
+                root=os.path.dirname(dataset_dict[dataset_split]),
+                transform=transforms.Compose([
+                    transforms.ToTensor(),
+                    resize_all
+                ]))
+        # dataloader (N, 3, 32, 32)
+        dloader = DataLoader(dset, batch_size=args.gan_batch_size, shuffle=True)
+    
+    # Synthetic data must be loaded from `samples/`
+    elif "samples" in args.dataset.lower():
+       dset = FileDataset(args.dataset, getattr(args, 'max_num_samples', -1))
+
+    elif "cifar" in args.dataset.lower():
+        if args.dataset.lower() == "cifar100":
             dset_ = ucifar.CIFAR100
         else:
             dset_ = ucifar.CIFAR10
@@ -42,7 +80,8 @@ def load_data(args, train=True, imagenet_uid_fp="imagenet_uid.npy", data_root='.
             all_inds = np.arange(len(dset))
             rand_inds = np.random.choice(all_inds, size=args.max_num_samples, replace=False)
             dset = torch.utils.data.Subset(dset, rand_inds)
-    elif args.dset.lower() == "svhn":
+
+    elif args.dataset.lower() == "svhn":
        if train:
            split = 'train'
        else:
@@ -66,7 +105,8 @@ def load_data(args, train=True, imagenet_uid_fp="imagenet_uid.npy", data_root='.
           all_inds = np.arange(len(dset))
           rand_inds = np.random.choice(all_inds, size=args.max_num_samples, replace=False)
           dset = torch.utils.data.Subset(dset, rand_inds)
-    elif args.dset.lower() == "mnist":
+
+    elif args.dataset.lower() == "mnist":
         dset = torchvision.datasets.MNIST(data_root,
                                               download=True,
                                               train=train,
@@ -84,7 +124,7 @@ def load_data(args, train=True, imagenet_uid_fp="imagenet_uid.npy", data_root='.
             rand_inds = np.random.choice(all_inds, size=args.max_num_samples, replace=False)
             dset = torch.utils.data.Subset(dset, rand_inds)
 
-    elif args.dset.lower() == "imagenet":
+    elif args.dataset.lower() == "imagenet":
         #NB: we split on train. See comment below
         split = 'train'
         in_dir = os.path.join(args.imagenet_dir, split)
@@ -132,7 +172,8 @@ def load_data(args, train=True, imagenet_uid_fp="imagenet_uid.npy", data_root='.
             dset = train_dset
         else:
            dset = test_dset
-    elif "fonts" in args.dset.lower():
+
+    elif "fonts" in args.dataset.lower():
         if train:
             split = 'train'
         else:
@@ -141,7 +182,7 @@ def load_data(args, train=True, imagenet_uid_fp="imagenet_uid.npy", data_root='.
         data_dir = fonts_data_dir
 
         #E.g. "fonts_1" = "fonts with 1/4 transformations"
-        num_trans = args.dset.split("_")[-1]
+        num_trans = args.dataset.split("_")[-1]
         #TODO: Don't hard-code filename pattern...
         fn_pattern = split + "_{}_" + "ABCDEFGHIJ_2000_6_28_dim={}.h5".format(num_trans)
 
@@ -183,4 +224,4 @@ def load_data(args, train=True, imagenet_uid_fp="imagenet_uid.npy", data_root='.
     else:
         raise Exception("Dataset not understood")
 
-    return dset
+    return dset, dataset_dict, dloader
