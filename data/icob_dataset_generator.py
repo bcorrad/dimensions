@@ -121,8 +121,12 @@ def create_random_shape_images(imgResol: Union[list, tuple] = (32, 32),
     width, height = imgResol
 
     for i in tqdm(range(nImgs)):
-        # Create a new image with a white background
-        image = Image.new("RGB", (width, height), "black")
+        
+        # Choose the background color randomly
+        background_color = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
+        image = Image.new("RGB", (width, height), background_color)
+        # image = Image.new("RGB", (width, height), "black")
+
         draw = ImageDraw.Draw(image)
         
         # Determine the number of shapes to draw (random)
@@ -190,7 +194,8 @@ def create_random_shape_images(imgResol: Union[list, tuple] = (32, 32),
 def generate_dataloader(dataDir: os.PathLike = "datasets", 
                         imgResol: tuple = (32, 32), 
                         batchSize: int = 64,
-                        nImages: int = 5) -> dict:
+                        nImages: int = 5,
+                        split: Union[list, str]=["multi_shapes", "single_shapes", "chessboards", "monochrome"]):
     
     """
     Generate a dataloader dictionary containing paths to different types of image datasets.
@@ -209,30 +214,30 @@ def generate_dataloader(dataDir: os.PathLike = "datasets",
             - "monochrome": The directory path for the dataset containing monochrome images.
     """
     
-    
-    create_random_shape_images(imgResol=imgResol, 
-                               destPath=f"{dataDir}/multi_shapes", 
-                               nImgs=nImages, 
-                               shapeType="square",
-                               multiShape=True,
-                               evalComplexity=True)
-    
-    create_random_shape_images(imgResol=imgResol, 
-                               destPath=f"{dataDir}/single_shapes", 
-                               nImgs=nImages, 
-                               shapeType="square",
-                               multiShape=False,
-                               evalComplexity=True)
-
-    create_chessboard_pattern_images(imgResol=imgResol, 
-                                     destPath=f"{dataDir}/chessboards", 
-                                     nImgs=nImages,
-                                     evalComplexity=True)
-
-    create_random_monochrome_images(imgResol=imgResol, 
-                                    destPath=f"{dataDir}/monochrome",
-                                    nImgs=nImages,
-                                    evalComplexity=True)
+    if "multi_shapes" in split:
+        create_random_shape_images(imgResol=imgResol, 
+                                destPath=f"{dataDir}/multi_shapes", 
+                                nImgs=nImages, 
+                                shapeType="square",
+                                multiShape=True,
+                                evalComplexity=True)
+    if "single_shapes" in split:
+        create_random_shape_images(imgResol=imgResol, 
+                                destPath=f"{dataDir}/single_shapes", 
+                                nImgs=nImages, 
+                                shapeType="square",
+                                multiShape=False,
+                                evalComplexity=True)
+    if "chessboards" in split:
+        create_chessboard_pattern_images(imgResol=imgResol, 
+                                        destPath=f"{dataDir}/chessboards", 
+                                        nImgs=nImages,
+                                        evalComplexity=True)
+    if "monochrome" in split:
+        create_random_monochrome_images(imgResol=imgResol, 
+                                        destPath=f"{dataDir}/monochrome",
+                                        nImgs=nImages,
+                                        evalComplexity=True)
     
     # initialize the dictionary for the dataloader and paths
     dataset_dict = dict()

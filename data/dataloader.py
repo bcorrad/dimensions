@@ -30,9 +30,11 @@ def load_data(args,
         if not os.path.exists(data_root):
             print("Generating synthetic data for ICoB dataset")
             dataset_dict = generate_dataloader(dataDir=data_root, 
-                                               imgResol=args.img_size, 
-                                               batchSize=args.gan_batch_size, 
-                                               nImages=args.n_images)
+                                                imgResol=args.img_size, 
+                                                batchSize=args.gan_batch_size, 
+                                                nImages=args.n_images//4,
+                                                split=dataset_split)
+
         else:
             for split in os.listdir(data_root):
                 dataset_dict[split] = os.path.join(data_root, split)
