@@ -32,7 +32,7 @@ def load_data(args,
             dataset_dict = generate_dataloader(dataDir=data_root, 
                                                 imgResol=args.img_size, 
                                                 batchSize=args.gan_batch_size, 
-                                                nImages=args.n_images//4,
+                                                nImages=args.n_images,
                                                 split=dataset_split)
 
         else:
@@ -55,6 +55,13 @@ def load_data(args,
                     transforms.ToTensor(),
                     resize_all
                 ]))
+            
+        # Pick args.max_num_samples samples from the dataset at random
+        if args.max_num_samples != -1:
+            all_inds = np.arange(len(dset))
+            rand_inds = np.random.choice(all_inds, size=args.max_num_samples, replace=False)
+            dset = torch.utils.data.Subset(dset, rand_inds)
+
         # dataloader (N, 3, 32, 32)
         dloader = DataLoader(dset, batch_size=args.gan_batch_size, shuffle=True)
     

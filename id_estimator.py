@@ -3,10 +3,10 @@ import numpy as np
 from dimensions import estimators
 from dimensions.estimators.mle import mle
 
-def run_estimator(args, dataset):
+def run_estimator(args, dataset, verbose=False):    
     estimator = args.estimator
     if estimator == "mle":
-        results = run_mle(args, dataset)
+        results = run_mle(args, dataset, verbose=verbose)
     elif estimator == "geomle":
         results = run_geomle(args, dataset)
     elif estimator == "twonn":
@@ -44,6 +44,8 @@ def run_mle(args, dataset, verbose=False):
             save_dict["inv_mle_dim"] = float(inv_mle_dim)
     with open(save_fp, 'w') as fh:
         json.dump(save_dict, fh)
+    if verbose:
+        print(save_dict)
     return save_dict
 
 
